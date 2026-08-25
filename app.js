@@ -595,12 +595,23 @@
       exportedAt: new Date().toISOString(),
       projects,
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const json = JSON.stringify(payload, null, 2);
+    const stamp = dateISO().replace(/-/g, "");
+    const filename = `multicrono-backup-${stamp}.json`;
+
+    // The Android wrapper's WebView has no native handling for blob://
+    // download links, so app.js hands the file to it directly when present.
+    if (window.AndroidBridge && window.AndroidBridge.saveFile) {
+      const base64 = btoa(unescape(encodeURIComponent(json)));
+      window.AndroidBridge.saveFile(base64, filename);
+      return;
+    }
+
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const stamp = dateISO().replace(/-/g, "");
     a.href = url;
-    a.download = `multicrono-backup-${stamp}.json`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
